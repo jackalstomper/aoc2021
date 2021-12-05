@@ -72,32 +72,18 @@ impl Board {
     }
 
     fn play(&mut self, draw: u32) -> bool {
-        for row in &mut self.rows {
-            for col in row {
+        for row_idx in 0..BOARD_SIZE {
+            for col_idx in 0..BOARD_SIZE {
+                let col = &mut self.rows[row_idx][col_idx];
                 if col.0 == draw && !col.1 {
                     col.1 = true;
                     self.sum -= draw;
+                    if (0..BOARD_SIZE).all(|i| self.rows[row_idx][i].1)
+                        || (0..BOARD_SIZE).all(|i| self.rows[i][col_idx].1)
+                    {
+                        return true;
+                    }
                 }
-            }
-        }
-
-        // check win condition
-        for row_idx in 0..BOARD_SIZE {
-            let mut row_all_true = true;
-            for col_idx in 0..BOARD_SIZE {
-                if !self.rows[row_idx][col_idx].1 {
-                    row_all_true = false;
-                    continue; // no point performing column check
-                }
-
-                // check column win condition
-                if (0..BOARD_SIZE).all(|i| self.rows[i][col_idx].1) {
-                    return true;
-                }
-            }
-
-            if row_all_true {
-                return true;
             }
         }
 
