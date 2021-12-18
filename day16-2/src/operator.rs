@@ -18,10 +18,6 @@ enum OperationType {
     Equal,
 }
 
-trait Operation {
-    fn operate(&self, operator: &Operator) -> u64;
-}
-
 pub struct Operator {
     bit_size: u32,
     packets: Vec<Packet>,
@@ -49,7 +45,6 @@ impl Operator {
             false => LengthType::Bits,
         };
 
-        let mut size = 1 + length_type as u32;
         let length_count: u32 = reader.read(length_type as u32).unwrap();
 
         let sub_packets = match length_type {
@@ -57,7 +52,8 @@ impl Operator {
             LengthType::SubPackets => Self::read_by_subpackets(reader, length_count),
         };
 
-        size += sub_packets.iter().fold(0u32, |memo, e| memo + e.bit_size());
+        let sub_size = sub_packets.iter().fold(0u32, |memo, e| memo + e.bit_size());
+        let size = 1 + length_type as u32 + sub_size;
 
         let operation = match packet_type {
             0 => OperationType::Sum,
@@ -78,7 +74,7 @@ impl Operator {
     }
 
     pub fn operate(&self) -> u64 {
-        match &self.operation {
+        match self.operation {
             OperationType::Sum => self.sum(),
             OperationType::Product => self.product(),
             OperationType::Min => self.min(),
@@ -120,41 +116,41 @@ impl Operator {
         packets
     }
 
-    pub fn sum(&self) -> u64 {
+    fn sum(&self) -> u64 {
         self.packets.iter().fold(0, |memo, e| memo + e.operate())
     }
 
-    pub fn product(&self) -> u64 {
+    fn product(&self) -> u64 {
         self.packets.iter().fold(1, |memo, e| memo * e.operate())
     }
 
-    pub fn min(&self) -> u64 {
+    fn min(&self) -> u64 {
         match self.packets.iter().map(|e| e.operate()).min() {
             None => 0,
             Some(e) => e,
         }
     }
 
-    pub fn max(&self) -> u64 {
+    fn max(&self) -> u64 {
         match self.packets.iter().map(|e| e.operate()).max() {
             None => 0,
             Some(e) => e,
         }
     }
 
-    pub fn greater_than(&self) -> u64 {
+    fn greater_than(&self) -> u64 {
         let left = self.packets[0].operate();
         let right = self.packets[1].operate();
         (left > right) as u64
     }
 
-    pub fn less_than(&self) -> u64 {
+    fn less_than(&self) -> u64 {
         let left = self.packets[0].operate();
         let right = self.packets[1].operate();
         (left < right) as u64
     }
 
-    pub fn equal(&self) -> u64 {
+    fn equal(&self) -> u64 {
         let left = self.packets[0].operate();
         let right = self.packets[1].operate();
         (left == right) as u64
